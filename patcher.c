@@ -4,7 +4,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef __APPLE__
 #include <mach-o/loader.h>
+#else
+#include "loader.h"
+#endif
 
 int getversioncode(int x, int y, int z) {
     return (x << 16) + ((y & 0xff) << 8) + (z & 0xff);
@@ -13,13 +17,13 @@ int getversioncode(int x, int y, int z) {
 int main(int argc, char** argv) {
     char *buffer;
 
-    if (argc == 1) {
-        printf("Usage: %s /path/to/ngrok\n", argv[0]);
+    if (argc < 5) {
+        printf("Usage: %s /path/to/ngrok <platform> <minos> <sdk>\n", argv[0]);
         exit(1);
     }
 
     char *raddr;
-    
+
     FILE *ptr;
     ptr = fopen(argv[1], "rb");
     if (ptr == NULL) {
@@ -71,10 +75,10 @@ int main(int argc, char** argv) {
             struct build_version_command *lc_buildver = (struct build_version_command *)lc;
             lc_buildver->cmd = LC_BUILD_VERSION;
             lc_buildver->cmdsize = 32;
-            lc_buildver->minos = getversioncode(12, 0, 0);
+            lc_buildver->minos = getversioncode(atoi(argv[3]), 0, 0);
             lc_buildver->ntools = 1;
-            lc_buildver->platform = 0x2; // set to iOS
-            lc_buildver->sdk = getversioncode(14, 0, 0);
+            lc_buildver->platform = atoi(argv[2]);
+            lc_buildver->sdk = getversioncode(atoi(argv[4]), 0, 0);
         }
 
         raddr += lc->cmdsize;
@@ -82,7 +86,7 @@ int main(int argc, char** argv) {
 
     fwrite(buffer, size, 1, ptrout);
     fclose(ptrout);
-    
+
     free(buffer);
 
     return 0;
